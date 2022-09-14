@@ -1,0 +1,69 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+trigger:
+- none
+
+resources:
+  pipelines:
+  - pipeline: imagebuilding
+    source: cipipeline
+    trigger: 
+      branches:
+        include: 
+        - main
+
+variables:
+- group: VaribalesForPipeline
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- checkout: self
+  persistCredentials: true
+
+- script: echo Hello, world!
+  displayName: 'Run a one-line script'
+
+- task: CmdLine@2
+  inputs:
+    script: |
+      git config --global user.email "$(email)"
+      git config --global user.name "$(name)"
+- task: CmdLine@2
+  inputs:
+    script: pwd
+
+- task: CmdLine@2
+  inputs:
+    script: ls -la
+
+- task: CmdLine@2
+  inputs:
+    script: 'sed "s|imagename|$(repo):$(imagetag)|g" $(System.DefaultWorkingDirectory)/tanzu_cd_repo/deployment.yaml > $(System.DefaultWorkingDirectory)/tanzu_cd_repo/deployment_cd.yaml'
+
+- task: CmdLine@2
+  inputs:
+    script: cat $(System.DefaultWorkingDirectory)/tanzu_cd_repo/deployment_cd.yaml
+
+
+- task: CmdLine@2
+  inputs:
+    script: git add .
+    workingDirectory: $(System.DefaultWorkingDirectory)/tanzu_cd_repo
+
+
+- task: CmdLine@2
+  inputs:
+    script: git commit -m 'Done by azure devops image building pipeline $(imagetag) [skip ci]'
+    workingDirectory: $(System.DefaultWorkingDirectory)/tanzu_cd_repo
+
+- task: CmdLine@2
+  inputs:
+    script: git push origin HEAD:main
+    workingDirectory: $(System.DefaultWorkingDirectory)/tanzu_cd_repo
+
+- checkout: self
+  clean: true
